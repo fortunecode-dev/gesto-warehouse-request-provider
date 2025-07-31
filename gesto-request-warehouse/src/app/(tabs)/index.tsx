@@ -57,10 +57,9 @@ export default function ActiveRequestsScreen() {
   };
 
   // Manejar selección de pedido
-  const handleSelectRequest = async (requestId: string,areaId:string) => {
+  const handleSelectRequest = async (areaId:string) => {
     try {
-      await AsyncStorage.setItem('requestId', requestId);
-      await AsyncStorage.setItem('selected', areaId);
+      await AsyncStorage.setItem('selectedLocal', areaId);
       router.push({ pathname: "/checkout" })
     } catch (error) {
       console.error("Error selecting request:", error);
@@ -99,23 +98,13 @@ export default function ActiveRequestsScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.requestCard}
-            onPress={() => handleSelectRequest(item.id,item.areaId)}
+            onPress={() => handleSelectRequest(item.id)}
           >
             <View style={styles.cardHeader}>
               <Text style={styles.areaText}>{item.areaName}</Text>
-              <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
             </View>
             
-            <Text style={styles.employeeText}>Responsable: {item.employeeName}</Text>
-            
-            <View style={styles.footer}>
-              <View style={styles.productCountContainer}>
-                <MaterialIcons name="shopping-cart" size={18} color="#555" />
-                <Text style={styles.productCountText}>{item.productCount} productos</Text>
-              </View>
-              
-              <MaterialIcons name="chevron-right" size={24} color={colors.primary} />
-            </View>
+           
           </TouchableOpacity>
         )}
         contentContainerStyle={styles.listContent}

@@ -2,8 +2,6 @@ import {
   activateRequest,
   getProductsSaved,
   makeMovement,
-  postFinal,
-  postInicial,
   syncProducts
 } from "@/services/pedidos.service";
 import { MaterialIcons } from '@expo/vector-icons';
@@ -115,14 +113,7 @@ export default function Basket({ title, url }) {
 
   const ejecutarAccion = (accion) => {
     switch (accion) {
-      case "Guardar Inicial":
-        postInicial()
-          .then(() => {Alert.alert('Guardar cantidades iniciales', 'Se guardaron las cantidades iniciales')
-            setHasReported(true)
-
-          })
-          .catch(() => Alert.alert('Guardar cantidades iniciales', 'Ha ocurrido un error'));
-        break;
+     
       case "Enviar Pedido":
         activateRequest()
           .then(() =>{ Alert.alert('Pedido enviado')
@@ -138,16 +129,7 @@ export default function Basket({ title, url }) {
           })
           .catch(() => Alert.alert('No se ha realizado el movimiento'));
         break;
-      case "Guardar Final":
-        postFinal()
-          .then(() => Alert.alert('Guardar cantidades finales', 'Se guardaron correctamente'))
-          .catch(() => Alert.alert('Error al guardar finales'))
-          .finally(() => {
-            router.push({ pathname: "/" });
-            AsyncStorage.removeItem("selectedLocal");
-            AsyncStorage.removeItem("selectedResponsable");
-          });
-        break;
+     
       default:
         console.warn("Acción desconocida");
     }
