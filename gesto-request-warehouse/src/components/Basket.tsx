@@ -1,8 +1,11 @@
+import { useAppTheme } from "@/providers/ThemeProvider";
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   ImageSourcePropType,
   Keyboard,
@@ -14,12 +17,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router, useFocusEffect } from "expo-router";
-import { useAppTheme } from "@/providers/ThemeProvider";
 
 import {
   activateRequest,
@@ -131,16 +130,16 @@ export default function Basket({ title, url, help }: BasketProps) {
   };
 
   const getContainerStyle = (item: any) => {
-    const quantity = parseFloat(item.quantity || "0");
-    const stock = parseFloat(item.stock ?? "");
+    const quantity = parseFloat(item.quantity?item.quantity: "0");
+    const stock = parseFloat(item.stock?item.stock: "0");
     if (isNaN(stock) || quantity === 0) return [styles.productoContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border }];
     if (quantity > stock) return [styles.productoContainer, { borderColor: themeColors.danger, backgroundColor: isDark ? "#ed6a5b" : "#fdecea" }];
     return [styles.productoContainer, { borderColor: themeColors.success, backgroundColor: isDark ? "#2ecc71" : "#eafaf1" }];
   };
 
   const hayExcesoDeCantidad = productos.some((p) => {
-    const qty = parseFloat(p.quantity || "0");
-    const stk = parseFloat(p.stock ?? "0");
+    const qty = parseFloat(p.quantity?p.quantity: "0");
+    const stk = parseFloat(p.stock?p.stock: "0");
     return qty > stk;
   });
 
@@ -301,18 +300,20 @@ export default function Basket({ title, url, help }: BasketProps) {
         </View>
       </KeyboardAvoidingView>
 
-      {/* MODAL DE AYUDA */}
       <Modal visible={helpVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { backgroundColor: themeColors.card }]}>
             <Text style={[styles.modalTitle, { color: themeColors.text }]}>{help.title}</Text>
-            <Image source={help.image} style={{ width: '100%', height: 200, marginVertical: 12, resizeMode: 'contain' }} />
-            {help.content.map((section, idx) => (
+            <ScrollView style={{height:"80%" }}>
+            {/* <Image source={help.image} style={{ height:"auto",width:"100%kc",marginVertical: 12, resizeMode: 'contain' }} /> */}
+               {help.content.map((section, idx) => (
               <View key={idx} style={{ marginBottom: 12 }}>
                 <Text style={{ fontWeight: '600', color: themeColors.text }}>{section.subtitle}</Text>
                 <Text style={{ color: themeColors.text }}>{section.content}</Text>
               </View>
             ))}
+            </ScrollView>
+           
             <TouchableOpacity
               onPress={() => setHelpVisible(false)}
               style={[styles.actionButton, { backgroundColor: themeColors.danger, marginTop: 10 }]}
