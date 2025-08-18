@@ -17,10 +17,11 @@ import { useTheme } from "react-native-paper";
 interface ActiveRequest {
   id: string;
   areaName: string;
-  areaId:string;
+  areaId: string;
   employeeName: string;
   productCount: number;
   createdAt: string;
+  hasRequests?: boolean; // ← nuevo
 }
 
 export default function ActiveRequestsScreen() {
@@ -29,48 +30,35 @@ export default function ActiveRequestsScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const { colors } = useTheme();
 
-  // Formatear fecha
-  const formatDate = (dateString: string) => {
-    return dayjs(dateString).format('DD/MM/YYYY HH:mm');
-  };
+  const formatDate = (dateString: string) => dayjs(dateString).format('DD/MM/YYYY HH:mm');
 
-  // Cargar pedidos activos
   const loadActiveRequests = async (isRefreshing = false) => {
     try {
-      if (isRefreshing) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+      if (isRefreshing) setRefreshing(true);
+      else setLoading(true);
 
       const requests = await getActiveRequests();
       setActiveRequests(requests);
     } catch (error) {
       console.error("Error loading active requests:", error);
     } finally {
-      if (isRefreshing) {
-        setRefreshing(false);
-      } else {
-        setLoading(false);
-      }
+      if (isRefreshing) setRefreshing(false);
+      else setLoading(false);
     }
   };
 
-  // Manejar selección de pedido
-  const handleSelectRequest = async (areaId:string) => {
+  const handleSelectRequest = async (area: any) => {
     try {
-      await AsyncStorage.setItem('selectedLocal', areaId);
+      await AsyncStorage.setItem('selectedLocal', area.id);
+      await AsyncStorage.setItem('selectedLocalName', area.areaName);
       router.push({ pathname: "/checkout" })
     } catch (error) {
       console.error("Error selecting request:", error);
     }
   };
 
-  // Cargar datos iniciales
-   useFocusEffect(useCallback(() => {
-        loadActiveRequests();
-    }, []));
-    
+  useFocusEffect(useCallback(() => { loadActiveRequests(); }, []));
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -95,18 +83,31 @@ export default function ActiveRequestsScreen() {
             <Text style={styles.emptyText}>No hay pedidos activos</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.requestCard}
-            onPress={() => handleSelectRequest(item.id)}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.areaText}>{item.areaName}</Text>
-            </View>
-            
-           
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const isMarked = !!item.hasRequests; // ← marcar si true
+          return (
+            <TouchableOpacity
+              style={[styles.requestCard, isMarked && styles.requestCardActive]}
+              onPress={() => handleSelectRequest(item)}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.areaText}>{item.areaName}</Text>
+                
+              </View>
+
+              {/* (Opcional) info extra:
+              <Text style={styles.employeeText}>Responsable: {item.employeeName}</Text>
+              <View style={styles.footer}>
+                <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                <View style={styles.productCountContainer}>
+                  <MaterialIcons name="inventory-2" size={16} color="#666" />
+                  <Text style={styles.productCountText}>{item.productCount} productos</Text>
+                </View>
+              </View>
+              */}
+            </TouchableOpacity>
+          );
+        }}
         contentContainerStyle={styles.listContent}
       />
     </View>
@@ -117,23 +118,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    marginTop:30,
+    marginTop: 30,
     backgroundColor: '#f8f9fa',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  listContent: { paddingBottom: 20 },
+
   requestCard: {
     backgroundColor: 'white',
     borderRadius: 10,
@@ -144,49 +135,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: 1,          // base
+    borderColor: '#e5e7eb',  // base
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+  // ← resalta en verde cuando hasRequests === true
+  requestCardActive: {
+    backgroundColor: '#eafaf1',
+    borderColor: '#2ecc71',
   },
-  areaText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  dateText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  employeeText: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 12,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  productCountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  productCountText: {
-    fontSize: 14,
-    color: '#555',
-    marginLeft: 6,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
+
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  areaText: { fontSize: 16, fontWeight: 'bold', color: '#333', flexShrink: 1 },
+
+  dateText: { fontSize: 14, color: '#666' },
+  employeeText: { fontSize: 14, color: '#555', marginBottom: 12 },
+
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  productCountContainer: { flexDirection: 'row', alignItems: 'center' },
+  productCountText: { fontSize: 14, color: '#555', marginLeft: 6 },
+
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  emptyText: { fontSize: 16, color: '#666', textAlign: 'center' },
+
+  // badge “Con pedido”
+  badgeRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  badgeText: { color: '#2ecc71', fontWeight: '700', fontSize: 12 },
 });

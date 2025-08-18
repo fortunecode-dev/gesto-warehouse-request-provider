@@ -2,22 +2,21 @@ import { useAppTheme } from "@/providers/ThemeProvider";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
-  ImageSourcePropType,
+  FlatList,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  ScrollView,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
 import {
@@ -27,25 +26,45 @@ import {
   syncProducts,
 } from "@/services/pedidos.service";
 
-const standar = { mass: "g", units: "u", volume: "mL", distance: "cm" };
-const cantidadRegex = /^\d*\.?\d{0,2}$/;
+const standar: Record<string, string> = { mass: "g", units: "u", volume: "mL", distance: "cm" };
+// aceptar coma o punto, hasta 2 decimales
+const cantidadRegex = /^\d*[.,]?\d{0,2}$/;
 
 interface BasketProps {
   title: string;
-  url: string;
+  url: "checkout" | string;
   help: {
     title: string;
-    image: ImageSourcePropType;
+    image: any; // ImageSourcePropType
     content: { subtitle: string; content: string }[];
   };
 }
 
+function normalize(str: string) {
+  return (str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 export default function Basket({ title, url, help }: BasketProps) {
   const [productos, setProductos] = useState<any[]>([]);
-  const [syncStatus, setSyncStatus] = useState("idle");
+  const [areaName, setAreaName] = useState<string>("");
+  const [syncStatus, setSyncStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [hasReported, setHasReported] = useState(false);
+
   const [helpVisible, setHelpVisible] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ visible: boolean; accion?: string }>({
+    visible: false,
+  });
+
+  const [query, setQuery] = useState("");
   const inputsRef = useRef<any[]>([]);
+  const listRef = useRef<FlatList<any>>(null);
+
+  // ⬇️ IDs marcados por el usuario (multiselección)
+  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
 
   const { theme } = useAppTheme();
   const isDark = theme === "dark";
@@ -57,10 +76,12 @@ export default function Basket({ title, url, help }: BasketProps) {
     inputBg: isDark ? "#1f2937" : "#fafafa",
     inputText: isDark ? "#f3f4f6" : "#2c3e50",
     primary: isDark ? "#60A5FA" : "#3498db",
-    success: "#04bf56",
+    success: "#2ecc71",
     danger: "#e74c3c",
     warning: "#e67e22",
     disabled: isDark ? "#4b5563" : "#bdc3c7",
+    markBgLight: "#e0f2fe",   // celeste claro
+    markBgDark: "#0b3b57",    // celeste oscuro para dark
   };
 
   useFocusEffect(
@@ -71,34 +92,36 @@ export default function Basket({ title, url, help }: BasketProps) {
 
   const load = async () => {
     try {
-
       const areaId = await AsyncStorage.getItem("selectedLocal");
+      const areaName = await AsyncStorage.getItem("selectedLocalName");
       if (!areaId) return router.push({ pathname: "/" });
 
       const saved = await getProductsSaved(url);
       setProductos([...saved]);
-      setHasReported(saved.some((p) => !!p.reported));
+      setAreaName(areaName || "");
+      setHasReported(saved.some((p: any) => !!p.reported));
+      // al recargar, mantenemos las marcas (no se limpian)
     } catch (e) {
       Alert.alert("Error cargando los productos", String(e));
     }
   };
 
+  // sincronización con debounce
   useEffect(() => {
     if (!productos?.length) return;
     const timer = setTimeout(async () => {
       try {
         setSyncStatus("loading");
         await syncProducts(url, productos);
-        url === 'final' && await load()
         setSyncStatus("success");
-      } catch (error) {
+      } catch {
         setSyncStatus("error");
       } finally {
         setTimeout(() => setSyncStatus("idle"), 500);
       }
-    }, url === 'final' ? 200 : 500);
+    }, 500);
     return () => clearTimeout(timer);
-  }, [productos]);
+  }, [productos, url]);
 
   const actualizarCantidad = (id: string, nuevaCantidad: string) => {
     if (!cantidadRegex.test(nuevaCantidad)) return;
@@ -108,9 +131,10 @@ export default function Basket({ title, url, help }: BasketProps) {
     );
   };
 
-  const handleSubmit = (index: number) => {
-    if (index + 1 < productos.length) {
-      inputsRef.current[index + 1]?.focus();
+  const handleSubmit = (index: number, dataLength: number) => {
+    if (index + 1 < dataLength) {
+      const nextRef = inputsRef.current[index + 1];
+      if (nextRef?.focus) nextRef.focus();
     } else {
       Keyboard.dismiss();
     }
@@ -130,16 +154,27 @@ export default function Basket({ title, url, help }: BasketProps) {
   };
 
   const getContainerStyle = (item: any) => {
-    const quantity = parseFloat(item.quantity?item.quantity: "0");
-    const stock = parseFloat(item.stock?item.stock: "0");
-    if (isNaN(stock) || quantity === 0) return [styles.productoContainer, { backgroundColor: themeColors.card, borderColor: themeColors.border }];
-    if (quantity > stock) return [styles.productoContainer, { borderColor: themeColors.danger, backgroundColor: isDark ? "#ed6a5b" : "#fdecea" }];
-    return [styles.productoContainer, { borderColor: themeColors.success, backgroundColor: isDark ? "#2ecc71" : "#eafaf1" }];
+    const quantity = parseFloat(item.quantity ?? "0");
+    const stock = parseFloat(item.stock ?? "0");
+    if (isNaN(stock) || quantity === 0)
+      return [
+        styles.productoContainer,
+        { backgroundColor: themeColors.card, borderColor: themeColors.border },
+      ];
+    if (quantity > stock)
+      return [
+        styles.productoContainer,
+        { borderColor: themeColors.danger, backgroundColor: isDark ? "#ed6a5b" : "#fdecea" },
+      ];
+    return [
+        styles.productoContainer,
+        { borderColor: themeColors.success, backgroundColor: isDark ? "#2ecc71" : "#eafaf1" },
+      ];
   };
 
   const hayExcesoDeCantidad = productos.some((p) => {
-    const qty = parseFloat(p.quantity?p.quantity: "0");
-    const stk = parseFloat(p.stock?p.stock: "0");
+    const qty = parseFloat(p.quantity ?? "0");
+    const stk = parseFloat(p.stock ?? "0");
     return qty > stk;
   });
 
@@ -151,13 +186,14 @@ export default function Basket({ title, url, help }: BasketProps) {
         setHasReported(true);
       }
       if (accion === "Mover al área") {
-        makeMovement()
-          .then(() => {
-            Alert.alert('Movimiento realizado')
-            AsyncStorage.removeItem("requestId")
-            router.push({ pathname: "/" });
-          })
-          .catch(() => Alert.alert('No se ha realizado el movimiento'));
+        try {
+          await makeMovement();
+          Alert.alert("Movimiento realizado");
+          await AsyncStorage.removeItem("requestId");
+          router.push({ pathname: "/" });
+        } catch {
+          Alert.alert("No se ha realizado el movimiento");
+        }
       }
     } catch (e) {
       Alert.alert("Error", String(e));
@@ -165,10 +201,117 @@ export default function Basket({ title, url, help }: BasketProps) {
   };
 
   const handleAction = (accion: string) => {
-    Alert.alert("Confirmar", `¿Desea ${accion}?`, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Sí", onPress: () => ejecutarAccion(accion) },
-    ]);
+    setConfirmState({ visible: true, accion });
+  };
+
+  const filteredProductos = useMemo(() => {
+    const q = normalize(query);
+    if (!q) return productos;
+    return productos.filter((p) => normalize(p.name).includes(q));
+  }, [productos, query]);
+
+  const onSearchFocus = useCallback(() => {
+    if (!query) return;
+    setQuery("");
+  }, [query]);
+
+  // toggle de marcado
+  const toggleMarked = (id: string) => {
+    setMarkedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // ---------- UI ----------
+  const ProductRow = ({ item, index }: { item: any; index: number }) => {
+    const isMarked = markedIds.has(String(item.id));
+    const containerStyles = [
+      ...getContainerStyle(item),
+      isMarked && {
+        borderColor: themeColors.primary,
+        backgroundColor: isDark ? themeColors.markBgDark : themeColors.markBgLight,
+        borderWidth:3
+      },
+    ];
+
+    return (
+      <Pressable onPress={() => toggleMarked(String(item.id))} style={containerStyles}>
+        <View style={styles.row}>
+          <View style={styles.infoLeft}>
+            <Text style={[styles.nombre, { color: themeColors.text }]}>
+              {item.name} ({standar[item.unitOfMeasureId]})
+            </Text>
+            {!!item.stock && <Text style={{ color: themeColors.text }}>Stock: {item.stock}</Text>}
+            {!!item.netContent && (
+              <Text style={{ color: themeColors.text }}>
+                Contenido neto: {item.netContent} {standar[item.netContentUnitOfMeasureId]}
+              </Text>
+            )}
+          </View>
+
+          <TextInput
+            ref={(ref) => {
+              if (ref) inputsRef.current[index] = ref;
+            }}
+            style={[
+              styles.inputFlex,
+              {
+                backgroundColor: themeColors.inputBg,
+                color: themeColors.inputText,
+                borderColor: themeColors.border,
+              },
+            ]}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            editable={true}
+            value={item.quantity?.toString() || ""}
+            onChangeText={(text) => actualizarCantidad(item.id, text)}
+            onSubmitEditing={() => handleSubmit(index, filteredProductos.length)}
+            placeholder="Cantidad"
+            placeholderTextColor="#888"
+            returnKeyType="next"
+          />
+        </View>
+      </Pressable>
+    );
+  };
+
+  const ConfirmDialog = ({
+    visible,
+    text,
+    onCancel,
+    onConfirm,
+  }: {
+    visible: boolean;
+    text: string;
+    onCancel: () => void;
+    onConfirm: () => void;
+  }) => {
+    return (
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.confirmCard, { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.confirmText, { color: themeColors.text }]}>{text}</Text>
+            <View style={styles.confirmActions}>
+              <Pressable
+                onPress={onCancel}
+                style={[styles.actionButton, { backgroundColor: themeColors.disabled }]}
+              >
+                <Text style={styles.actionText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                onPress={onConfirm}
+                style={[styles.actionButton, { backgroundColor: themeColors.primary }]}
+              >
+                <Text style={styles.actionText}>Sí</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   return (
@@ -179,141 +322,145 @@ export default function Basket({ title, url, help }: BasketProps) {
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: themeColors.background }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={60} // ajusta según tu header fijo
+        keyboardVerticalOffset={60}
       >
         <View style={{ flex: 1 }}>
-          {/* Header fijo */}
-          <View style={[styles.headerRow, { backgroundColor: themeColors.card }]}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.title, { color: themeColors.text }]}>{title}</Text>
+          {/* Header */}
+          <View style={[styles.header, { backgroundColor: themeColors.card }]}>
+            {/* fila superior */}
+            <View style={styles.headerTopRow}>
+              <Text
+                style={[styles.titleSmall, { color: themeColors.text }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {title}{url === "checkout" ? ` - ${areaName}` : ``}
+              </Text>
 
+              <View style={styles.topRight}>
+                <View style={styles.syncIcon}>{renderSyncStatus()}</View>
+                <TouchableOpacity
+                  onPress={() => setHelpVisible(true)}
+                  style={[styles.actionButton, { backgroundColor: themeColors.primary }]}
+                >
+                  <Text style={styles.actionText}>Ayuda</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.buttonsRow}>
-              <TouchableOpacity onPress={() => setHelpVisible(true)} style={[styles.actionButton, { backgroundColor: themeColors.primary }]}>
-                <Text style={styles.actionText}>Ayuda</Text>
-              </TouchableOpacity>
-              <View style={styles.syncIcon}>{renderSyncStatus()}</View>
-              <TouchableOpacity onPress={load} style={[styles.actionButton, { backgroundColor: themeColors.primary }]}>
-                <Text style={styles.actionText}>Actualizar</Text>
-              </TouchableOpacity>
-              {url === 'initial' && (
+            {/* alerta */}
+            {hayExcesoDeCantidad && (
+              <View style={styles.warningBanner}>
+                <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13, textAlign: "center" }}>
+                  ⚠️ Cantidad mayor al stock en algunos productos.
+                </Text>
+              </View>
+            )}
+
+            {/* buscador + botones */}
+            <View style={styles.headerBottomRow}>
+              <View
+                style={[
+                  styles.searchBox,
+                  { backgroundColor: themeColors.inputBg, borderColor: themeColors.border },
+                ]}
+              >
+                <MaterialIcons name="search" size={18} color="#888" />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  onFocus={onSearchFocus}
+                  placeholder="Buscar producto..."
+                  placeholderTextColor="#888"
+                  style={[styles.searchInput, { color: themeColors.inputText }]}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                />
+                {!!query && (
+                  <TouchableOpacity onPress={() => setQuery("")}>
+                    <MaterialIcons name="close" size={18} color="#888" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.bottomRight}>
                 <TouchableOpacity
-                  onPress={() => !hasReported && handleAction("Guardar Inicial")}
-                  style={[styles.actionButton, hasReported && styles.disabledButton, { backgroundColor: themeColors.primary }]}
-                  disabled={hasReported}
+                  onPress={load}
+                  style={[styles.actionButton, { backgroundColor: themeColors.primary }]}
                 >
-                  <Text style={[styles.actionText, hasReported && styles.disabledText]}>
-                    {hasReported ? "Reportado" : "Guardar Inicial"}
-                  </Text>
+                  <Text style={styles.actionText}>Actualizar</Text>
                 </TouchableOpacity>
-              )}
 
-              {url === 'request' && (
-                <TouchableOpacity onPress={() => !hasReported && handleAction("Enviar Pedido")} style={[styles.actionButton, hasReported && styles.disabledButton, { backgroundColor: themeColors.primary }]}
-                  disabled={hasReported}>
-                  <Text style={[styles.actionText, hasReported && styles.disabledText]}>{hasReported ? "En espera" : "Confirmar Pedido"}</Text>
-                </TouchableOpacity>
-              )}
-
-              {url === 'checkout' && (
                 <TouchableOpacity
-                  onPress={() => (!hayExcesoDeCantidad && hasReported) && handleAction("Mover al área")}
-                  style={[styles.actionButton, (hayExcesoDeCantidad || !hasReported) && styles.disabledButton, { backgroundColor: themeColors.primary }]}
+                  onPress={() => !hayExcesoDeCantidad && handleAction("Mover al área")}
+                  style={[
+                    styles.actionButton,
+                    (hayExcesoDeCantidad || !hasReported) && styles.disabledButton,
+                    { backgroundColor: themeColors.primary },
+                  ]}
                   disabled={hayExcesoDeCantidad || !hasReported}
                 >
-                  <Text style={[styles.actionText, (hayExcesoDeCantidad || !hasReported) && styles.disabledText]}>
-                    {hayExcesoDeCantidad ? "Stock insuficiente" : !hasReported ? "Esperando aprovación" : "Mover al área"}
+                  <Text
+                    style={[
+                      styles.actionText,
+                      (hayExcesoDeCantidad || !hasReported) && styles.disabledText,
+                    ]}
+                  >
+                    {hayExcesoDeCantidad
+                      ? "Stock insuficiente"
+                      : !hasReported
+                      ? "Esperando aprovación"
+                      : "Mover al área"}
                   </Text>
                 </TouchableOpacity>
-              )}
-
-              {url === 'final' && (
-                <TouchableOpacity onPress={() => handleAction("Guardar Final")} style={[styles.actionButton, { backgroundColor: themeColors.primary }]}>
-                  <Text style={styles.actionText}>Guardar Final</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-          </View>
-          {hayExcesoDeCantidad && url === "checkout" && (
-            <View style={styles.warningBanner}>
-              <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13, textAlign: "center" }}>
-                ⚠️ Cantidad mayor al stock en algunos productos.
-              </Text>
-            </View>
-          )}
-          {/* Lista desplazable con los inputs */}
-          <ScrollView
-            contentContainerStyle={[{ backgroundColor: themeColors.background }]}
-            keyboardShouldPersistTaps="handled"
-          >
-            {productos.map((item, index) => (
-              <View key={item.id} style={getContainerStyle(item)}>
-                <View style={styles.row}>
-                  <View style={styles.infoLeft}>
-                    <Text style={[styles.nombre, { color: themeColors.text }]}>
-                      {item.name} ({standar[item.unitOfMeasureId]})
-                    </Text>
-                    {!!item.stock && (
-                      <Text style={{ color: themeColors.text }}>
-                        Stock: {item.stock}
-                      </Text>
-                    )}
-
-                    {!!item.netContent && (
-                      <Text style={{ color: themeColors.text }}>
-                        Contenido neto: {item.netContent} {standar[item.netContentUnitOfMeasureId]}
-                      </Text>
-                    )}
-                    {url === 'final' && (
-                      <Text style={{ color: themeColors.text, fontWeight: "bold" }}>
-                        Vendido: {item.sold}
-                      </Text>
-                    )}
-                  </View>
-                  <TextInput
-                    ref={(ref) => {
-                      if (ref) inputsRef.current[index] = ref;
-                    }}
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: themeColors.inputBg,
-                        color: themeColors.inputText,
-                        borderColor: themeColors.border,
-                      },
-                    ]}
-                    keyboardType="decimal-pad"
-                    editable={!((url === "initial" || url === "request") && hasReported)}
-                    value={item.quantity?.toString() || ""}
-                    onChangeText={(text) => actualizarCantidad(item.id, text)}
-                    onSubmitEditing={() => handleSubmit(index)}
-                    placeholder="Cantidad"
-                    placeholderTextColor="#888"
-                    returnKeyType="next"
-                  />
-                </View>
               </View>
-            ))}
-          </ScrollView>
+            </View>
+          </View>
+
+          {/* Lista virtualizada */}
+          <FlatList
+            ref={listRef}
+            data={filteredProductos}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={({ item, index }) => <ProductRow item={item} index={index} />}
+            contentContainerStyle={{
+              backgroundColor: themeColors.background,
+              paddingHorizontal: 10,
+              paddingTop: 10,
+              paddingBottom: 10,
+            }}
+            keyboardShouldPersistTaps="handled"
+            initialNumToRender={12}
+            maxToRenderPerBatch={12}
+            windowSize={10}
+            removeClippedSubviews
+          />
         </View>
       </KeyboardAvoidingView>
 
-      <Modal visible={helpVisible} animationType="slide" transparent>
+      {/* Modal de ayuda */}
+      <Modal
+        visible={helpVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setHelpVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { backgroundColor: themeColors.card }]}>
             <Text style={[styles.modalTitle, { color: themeColors.text }]}>{help.title}</Text>
-            <ScrollView style={{height:"80%" }}>
-            {/* <Image source={help.image} style={{ height:"auto",width:"100%kc",marginVertical: 12, resizeMode: 'contain' }} /> */}
-               {help.content.map((section, idx) => (
-              <View key={idx} style={{ marginBottom: 12 }}>
-                <Text style={{ fontWeight: '600', color: themeColors.text }}>{section.subtitle}</Text>
-                <Text style={{ color: themeColors.text }}>{section.content}</Text>
-              </View>
-            ))}
-            </ScrollView>
-           
+            <FlatList
+              data={help.content}
+              keyExtractor={(_, i) => `help-${i}`}
+              style={{ maxHeight: "80%" }}
+              renderItem={({ item }) => (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontWeight: "600", color: themeColors.text }}>
+                    {item.subtitle}
+                  </Text>
+                  <Text style={{ color: themeColors.text }}>{item.content}</Text>
+                </View>
+              )}
+            />
             <TouchableOpacity
               onPress={() => setHelpVisible(false)}
               style={[styles.actionButton, { backgroundColor: themeColors.danger, marginTop: 10 }]}
@@ -323,97 +470,125 @@ export default function Basket({ title, url, help }: BasketProps) {
           </View>
         </View>
       </Modal>
+
+      {/* Confirmación web-compatible */}
+      <ConfirmDialog
+        visible={confirmState.visible}
+        text={`¿Desea ${confirmState.accion}?`}
+        onCancel={() => setConfirmState({ visible: false })}
+        onConfirm={() => {
+          const a = confirmState.accion!;
+          setConfirmState({ visible: false });
+          ejecutarAccion(a);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   warningBanner: {
-    margin: 10,
+    marginHorizontal: 10,
     backgroundColor: "#e67e22",
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 6,
-    marginTop: 4,
-    textAlign: "center"
+    marginTop: 6,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+
+  header: {
     padding: 10,
     elevation: 4,
     zIndex: 10,
+    gap: 8,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  buttonsRow: {
+  headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "space-between",
+    gap: 8,
   },
-  actionButton: {
-    paddingVertical: 6,
+  topRight: { flexDirection: "row", alignItems: "center", gap: 6 },
+  titleSmall: { fontSize: 16, fontWeight: "700", flexShrink: 1 },
+
+  headerBottomRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  searchBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
     paddingHorizontal: 10,
-    borderRadius: 6,
-  },
-  actionText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  syncIcon: {
-    marginLeft: 6,
+    paddingVertical: 6,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 8,
   },
+  searchInput: { flex: 1, fontSize: 14, paddingVertical: 0 },
+
+  bottomRight: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 },
+
   productoContainer: {
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
     marginBottom: 10,
+    overflow: "hidden",
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  infoLeft: {
-    flex: 1,
-    marginRight: 10,
-  },
+
+  row: { flexDirection: "row", alignItems: "stretch", gap: 10 },
+
+  // Info producto
+  infoLeft: { flex: 1, flexShrink: 1 },
+
   nombre: {
     fontSize: 14,
     fontWeight: "600",
     marginBottom: 4,
+    flexWrap: "wrap",
   },
-  input: {
-    width: 80,
+
+  // Input único: mínimo 20% del contenedor (sin ancho fijo)
+  inputFlex: {
     borderWidth: 1,
     borderRadius: 6,
     padding: 8,
     fontSize: 14,
     textAlign: "right",
+    flexBasis: "20%",
+    minWidth: 80,
+    flexShrink: 1,
   },
+
+  // Modales
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modalContainer: {
     borderRadius: 12,
     padding: 16,
+    width: 520,
+    maxWidth: "100%",
+    maxHeight: "90%",
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 8,
-  }, disabledButton: {
-    backgroundColor: "#bdc3c7",
+  modalTitle: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
+
+  confirmCard: {
+    borderRadius: 12,
+    padding: 16,
+    width: 360,
+    maxWidth: "90%",
+    alignSelf: "center",
   },
-  disabledText: {
-    color: "#7f8c8d",
-  },
+  confirmText: { fontSize: 16, marginBottom: 12 },
+  confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8 },
+
+  actionButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 },
+  actionText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  syncIcon: { marginLeft: 6, alignItems: "center", justifyContent: "center" },
+
+  disabledButton: { backgroundColor: "#bdc3c7" },
+  disabledText: { color: "#7f8c8d" },
 });
