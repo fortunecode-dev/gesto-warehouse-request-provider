@@ -415,7 +415,7 @@ export default function Basket({ title, url, help }: BasketProps) {
                   onPress={() => !hayExcesoDeCantidad && handleAction("Mover al área")}
                   style={[
                     styles.actionButton,
-                    (hayExcesoDeCantidad || !hasReported) && styles.disabledButton,
+                    (hayExcesoDeCantidad || !hasReported) ? styles.disabledButton:{ backgroundColor: themeColors.primary },
                   ]}
                   disabled={hayExcesoDeCantidad || !hasReported}
                 >

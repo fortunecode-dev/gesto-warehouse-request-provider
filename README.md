@@ -7,4 +7,6 @@
     -Resaltar areas con pedidos
 ## 2.0.1
     -Marcar stock insuficiente
+## 2.0.2
+    -Colores del botón "Mover al área"
         
