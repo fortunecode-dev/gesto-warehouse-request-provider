@@ -97,10 +97,9 @@ export default function Basket({ title, url, help }: BasketProps) {
       if (!areaId) return router.push({ pathname: "/" });
 
       const saved = await getProductsSaved(url);
-      setProductos([...saved]);
+      setProductos(saved);                  // mantener referencia limpia; no clonar innecesariamente
       setAreaName(areaName || "");
       setHasReported(saved.some((p: any) => !!p.reported));
-      // al recargar, mantenemos las marcas (no se limpian)
     } catch (e) {
       Alert.alert("Error cargando los productos", String(e));
     }
@@ -123,22 +122,22 @@ export default function Basket({ title, url, help }: BasketProps) {
     return () => clearTimeout(timer);
   }, [productos, url]);
 
-  const actualizarCantidad = (id: string, nuevaCantidad: string) => {
+  const actualizarCantidad = useCallback((id: string, nuevaCantidad: string) => {
     if (!cantidadRegex.test(nuevaCantidad)) return;
     if (url === "checkout") setHasReported(false);
     setProductos((prev) =>
       prev.map((p) => (p.id === id ? { ...p, quantity: nuevaCantidad } : p))
     );
-  };
+  }, [url]);
 
-  const handleSubmit = (index: number, dataLength: number) => {
+  const handleSubmit = useCallback((index: number, dataLength: number) => {
     if (index + 1 < dataLength) {
       const nextRef = inputsRef.current[index + 1];
       if (nextRef?.focus) nextRef.focus();
     } else {
       Keyboard.dismiss();
     }
-  };
+  }, []);
 
   const renderSyncStatus = () => {
     switch (syncStatus) {
@@ -153,24 +152,24 @@ export default function Basket({ title, url, help }: BasketProps) {
     }
   };
 
-  const getContainerStyle = (item: any) => {
+  const getContainerStyle = useCallback((item: any) => {
     const quantity = parseFloat(item.quantity ?? "0");
     const stock = parseFloat(item.stock ?? "0");
     if (isNaN(stock) || quantity === 0)
       return [
         styles.productoContainer,
         { backgroundColor: themeColors.card, borderColor: themeColors.border },
-      ];
+      ] as const;
     if (quantity > stock)
       return [
         styles.productoContainer,
         { borderColor: themeColors.danger, backgroundColor: isDark ? "#ed6a5b" : "#fdecea" },
-      ];
+      ] as const;
     return [
-        styles.productoContainer,
-        { borderColor: themeColors.success, backgroundColor: isDark ? "#2ecc71" : "#eafaf1" },
-      ];
-  };
+      styles.productoContainer,
+      { borderColor: themeColors.success, backgroundColor: isDark ? "#16351f" : "#eafaf1" },
+    ] as const; // fondo dark más suave para evitar cambios bruscos
+  }, [isDark, themeColors]);
 
   const hayExcesoDeCantidad = productos.some((p) => {
     const qty = parseFloat(p.quantity ?? "0");
@@ -215,68 +214,86 @@ export default function Basket({ title, url, help }: BasketProps) {
     setQuery("");
   }, [query]);
 
-  // toggle de marcado
-  const toggleMarked = (id: string) => {
+  const toggleMarked = useCallback((id: string) => {
     setMarkedIds((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  // ---------- UI ----------
-  const ProductRow = ({ item, index }: { item: any; index: number }) => {
-    const isMarked = markedIds.has(String(item.id));
-    const containerStyles = [
-      ...getContainerStyle(item),
-      isMarked && {
-        borderColor: themeColors.primary,
-        backgroundColor: isDark ? themeColors.markBgDark : themeColors.markBgLight,
-        borderWidth:3
-      },
-    ];
+  // === renderItem MEMOIZADO (evita remontajes que quitan foco) ===
+  const renderItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => {
+      const isMarked = markedIds.has(String(item.id));
+      const containerStyles = [
+        ...getContainerStyle(item),
+        isMarked && {
+          borderColor: themeColors.primary,
+          backgroundColor: isDark ? themeColors.markBgDark : themeColors.markBgLight,
+          borderWidth: 3,
+        },
+      ];
 
-    return (
-      <Pressable onPress={() => toggleMarked(String(item.id))} style={containerStyles}>
-        <View style={styles.row}>
-          <View style={styles.infoLeft}>
-            <Text style={[styles.nombre, { color: themeColors.text }]}>
-              {item.name} ({standar[item.unitOfMeasureId]})
-            </Text>
-            {!!item.stock && <Text style={{ color: themeColors.text }}>Stock: {item.stock}</Text>}
-            {!!item.netContent && (
-              <Text style={{ color: themeColors.text }}>
-                Contenido neto: {item.netContent} {standar[item.netContentUnitOfMeasureId]}
+      return (
+        <View style={containerStyles as any}>
+          <View style={styles.row}>
+            <Pressable style={styles.infoLeft} onPress={() => toggleMarked(String(item.id))}>
+              <Text style={[styles.nombre, { color: themeColors.text }]}>
+                {item.name} ({standar[item.unitOfMeasureId]})
               </Text>
-            )}
-          </View>
+              {!!item.stock && <Text style={{ color: themeColors.text }}>Stock: {item.stock}</Text>}
+              {!!item.netContent && (
+                <Text style={{ color: themeColors.text }}>
+                  Contenido neto: {item.netContent} {standar[item.netContentUnitOfMeasureId]}
+                </Text>
+              )}
+            </Pressable>
 
-          <TextInput
-            ref={(ref) => {
-              if (ref) inputsRef.current[index] = ref;
-            }}
-            style={[
-              styles.inputFlex,
-              {
-                backgroundColor: themeColors.inputBg,
-                color: themeColors.inputText,
-                borderColor: themeColors.border,
-              },
-            ]}
-            keyboardType="decimal-pad"
-            inputMode="decimal"
-            editable={true}
-            value={item.quantity?.toString() || ""}
-            onChangeText={(text) => actualizarCantidad(item.id, text)}
-            onSubmitEditing={() => handleSubmit(index, filteredProductos.length)}
-            placeholder="Cantidad"
-            placeholderTextColor="#888"
-            returnKeyType="next"
-          />
+            <TextInput
+              ref={(ref) => {
+                if (ref) inputsRef.current[index] = ref;
+              }}
+              style={[
+                styles.inputFlex,
+                {
+                  backgroundColor: themeColors.inputBg,
+                  color: themeColors.inputText,
+                  borderColor: themeColors.border,
+                },
+              ]}
+              keyboardType="decimal-pad"
+              inputMode="decimal"
+              editable={true}
+              value={item.quantity?.toString() || ""}
+              onChangeText={(text) => actualizarCantidad(item.id, text)}
+              onSubmitEditing={() => handleSubmit(index, filteredProductos.length)}
+              placeholder="Cantidad"
+              blurOnSubmit={false}
+              placeholderTextColor="#888"
+              returnKeyType="next"
+            />
+          </View>
         </View>
-      </Pressable>
-    );
-  };
+      );
+    },
+    [
+      actualizarCantidad,
+      filteredProductos.length,
+      getContainerStyle,
+      isDark,
+      markedIds,
+      themeColors.border,
+      themeColors.inputBg,
+      themeColors.inputText,
+      themeColors.primary,
+      themeColors.text,
+      themeColors.markBgDark,
+      themeColors.markBgLight,
+      toggleMarked,
+      handleSubmit,
+    ]
+  );
 
   const ConfirmDialog = ({
     visible,
@@ -315,10 +332,7 @@ export default function Basket({ title, url, help }: BasketProps) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: themeColors.background }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: themeColors.background }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -334,7 +348,8 @@ export default function Basket({ title, url, help }: BasketProps) {
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {title}{url === "checkout" ? ` - ${areaName}` : ``}
+                {title}
+                {url === "checkout" ? ` - ${areaName}` : ``}
               </Text>
 
               <View style={styles.topRight}>
@@ -370,8 +385,9 @@ export default function Basket({ title, url, help }: BasketProps) {
                   value={query}
                   onChangeText={setQuery}
                   onFocus={onSearchFocus}
-                  placeholder="Buscar producto..."
+                  placeholder="Buscar..."
                   placeholderTextColor="#888"
+                  blurOnSubmit={false}
                   style={[styles.searchInput, { color: themeColors.inputText }]}
                   returnKeyType="search"
                   autoCorrect={false}
@@ -422,18 +438,21 @@ export default function Basket({ title, url, help }: BasketProps) {
             ref={listRef}
             data={filteredProductos}
             keyExtractor={(item) => String(item.id)}
-            renderItem={({ item, index }) => <ProductRow item={item} index={index} />}
+            renderItem={renderItem}
+            extraData={markedIds}                              // evita tocar data al marcar
             contentContainerStyle={{
               backgroundColor: themeColors.background,
               paddingHorizontal: 10,
               paddingTop: 10,
               paddingBottom: 10,
             }}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            scrollEventThrottle={16}
             initialNumToRender={12}
             maxToRenderPerBatch={12}
             windowSize={10}
-            removeClippedSubviews
+            removeClippedSubviews={Platform.OS === "ios"}      // 🔑 Android=false para no perder foco
           />
         </View>
       </KeyboardAvoidingView>
@@ -471,7 +490,7 @@ export default function Basket({ title, url, help }: BasketProps) {
         </View>
       </Modal>
 
-      {/* Confirmación web-compatible */}
+      {/* Confirmación */}
       <ConfirmDialog
         visible={confirmState.visible}
         text={`¿Desea ${confirmState.accion}?`}
@@ -482,7 +501,7 @@ export default function Basket({ title, url, help }: BasketProps) {
           ejecutarAccion(a);
         }}
       />
-    </KeyboardAvoidingView>
+    </>
   );
 }
 
@@ -574,7 +593,6 @@ const styles = StyleSheet.create({
     maxHeight: "90%",
   },
   modalTitle: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
-
   confirmCard: {
     borderRadius: 12,
     padding: 16,
@@ -584,11 +602,9 @@ const styles = StyleSheet.create({
   },
   confirmText: { fontSize: 16, marginBottom: 12 },
   confirmActions: { flexDirection: "row", justifyContent: "flex-end", gap: 8 },
-
   actionButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 },
   actionText: { color: "#fff", fontWeight: "600", fontSize: 14 },
   syncIcon: { marginLeft: 6, alignItems: "center", justifyContent: "center" },
-
   disabledButton: { backgroundColor: "#bdc3c7" },
   disabledText: { color: "#7f8c8d" },
 });

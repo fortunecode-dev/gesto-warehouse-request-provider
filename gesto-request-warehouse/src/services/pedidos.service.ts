@@ -67,7 +67,6 @@ export const syncProducts = async (url: string, productos: any[]) => {
 export const activateRequest = async () => {
   try {
     const areaId = await AsyncStorage.getItem('selectedLocal');
-
     const response = await axios.post(`${await API_URL()}/request/send-to-warehouse/${areaId}`);
     return response.data;
   } catch (error) {
@@ -78,7 +77,6 @@ export const activateRequest = async () => {
 export const makeMovement = async () => {
   try {
     const areaId = await AsyncStorage.getItem('selectedLocal');
-
     const response = await axios.post(`${await API_URL()}/request/make-movement/${areaId}`);
     return response.data;
   } catch (error) {
