@@ -154,13 +154,14 @@ export default function Basket({ title, url, help }: BasketProps) {
 
   const getContainerStyle = useCallback((item: any) => {
     const quantity = parseFloat(item.quantity ?? "0");
-    const stock = parseFloat(item.stock ?? "0");
+    const stockParsed = parseFloat(item.stock);
+    const stock=isNaN(stockParsed)?0:stockParsed
     if (isNaN(stock) || quantity === 0)
       return [
         styles.productoContainer,
         { backgroundColor: themeColors.card, borderColor: themeColors.border },
       ] as const;
-    if (quantity > stock)
+    if (quantity > stock ||  (isNaN(stock) && quantity > 0) )
       return [
         styles.productoContainer,
         { borderColor: themeColors.danger, backgroundColor: isDark ? "#ed6a5b" : "#fdecea" },
@@ -172,8 +173,11 @@ export default function Basket({ title, url, help }: BasketProps) {
   }, [isDark, themeColors]);
 
   const hayExcesoDeCantidad = productos.some((p) => {
-    const qty = parseFloat(p.quantity ?? "0");
-    const stk = parseFloat(p.stock ?? "0");
+    const quantityParsed= parseFloat(p.quantity)
+    const stockParsed= parseFloat(p.stock)
+
+    const qty = isNaN(quantityParsed)?0:quantityParsed;
+    const stk = isNaN(stockParsed)?0:stockParsed;
     return qty > stk;
   });
 
@@ -412,7 +416,6 @@ export default function Basket({ title, url, help }: BasketProps) {
                   style={[
                     styles.actionButton,
                     (hayExcesoDeCantidad || !hasReported) && styles.disabledButton,
-                    { backgroundColor: themeColors.primary },
                   ]}
                   disabled={hayExcesoDeCantidad || !hasReported}
                 >
@@ -605,6 +608,6 @@ const styles = StyleSheet.create({
   actionButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 },
   actionText: { color: "#fff", fontWeight: "600", fontSize: 14 },
   syncIcon: { marginLeft: 6, alignItems: "center", justifyContent: "center" },
-  disabledButton: { backgroundColor: "#bdc3c7" },
+  disabledButton: { backgroundColor: "#ffffff24" },
   disabledText: { color: "#7f8c8d" },
 });

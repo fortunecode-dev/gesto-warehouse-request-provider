@@ -5,3 +5,6 @@
     -Buscador
     -Marcador de pedidos
     -Resaltar areas con pedidos
+## 2.0.1
+    -Marcar stock insuficiente
+        
