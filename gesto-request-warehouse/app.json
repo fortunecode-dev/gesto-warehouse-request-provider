@@ -1,41 +1,14 @@
 {
   "expo": {
-    "name": "Almacen by GESTO",
-    "slug": "gesto-request-warehouse",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "gestorequestwarehouse",
+    "name": "Almacén",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#f8f8f8"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.fortunecode.gestorequestwarehouse"
-    },
+    "slug": "gesto-request-warehouse",
+    "version": "2.1.0",
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#f8f8f8"
-        }
-      ]
-    ],
     "experiments": {
       "typedRoutes": true
     },
@@ -45,6 +18,9 @@
         "projectId": "508554c6-15bb-4235-8497-10dec2763825"
       }
     },
-    "owner": "fortunecode"
+    "owner": "fortunecode",
+    "android": {
+      "package": "com.fortunecode.gestorequestwarehouse"
+    }
   }
 }
