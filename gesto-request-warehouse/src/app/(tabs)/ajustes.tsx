@@ -15,23 +15,10 @@ const WIFI_TARGET_NAME_KEY = 'WIFI_TARGET_NAME'; // ← NUEVO
 
 export default function Ajustes() {
   const { theme, toggleTheme } = useAppTheme();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
-  const [wifiNameInput, setWifiNameInput] = useState<string>('');
 
   const isDark = theme === 'dark';
 
-  const toggleNotifications = async () => {
-    const newValue = !notificationsEnabled;
-    setNotificationsEnabled(newValue);
-    await AsyncStorage.setItem('NOTIFICATIONS_ENABLED', JSON.stringify(newValue));
-  };
-  const commitWifiName = async () => {
-    const trimmed = wifiNameInput.trim();
-    // Permitimos vacío: si está vacío, el banner usará "wifipost" por defecto
-    setWifiNameInput(trimmed);
-    await AsyncStorage.setItem(WIFI_TARGET_NAME_KEY, trimmed);
-  };
   const handleServerUrlChange = async (text: string) => {
     setServerUrl(text);
     await AsyncStorage.setItem('SERVER_URL', text);
@@ -40,11 +27,9 @@ export default function Ajustes() {
   const loadSettings = async () => {
     const notif = await AsyncStorage.getItem('NOTIFICATIONS_ENABLED');
     const url = await AsyncStorage.getItem('SERVER_URL');
-    if (notif !== null) setNotificationsEnabled(JSON.parse(notif));
     if (url !== null) setServerUrl(url);
         // Cargar WiFi objetivo; si no existe, dejamos '' (vacío) para que el banner use "wifipost"
     const wn = await AsyncStorage.getItem(WIFI_TARGET_NAME_KEY);
-    setWifiNameInput(wn ?? '');
   };
 
   useEffect(() => {
@@ -73,20 +58,6 @@ export default function Ajustes() {
             thumbColor={isDark ? '#10B981' : '#f4f3f4'}
           />
         </View>
-
-        {/* Notificaciones
-        <View style={styles.settingRow}>
-          <Text style={[styles.label, isDark ? styles.textDark : styles.textLight]}>
-            Notificaciones
-          </Text>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={toggleNotifications}
-            trackColor={{ false: '#ccc', true: '#4ADE80' }}
-            thumbColor={notificationsEnabled ? '#10B981' : '#f4f3f4'}
-          />
-        </View> */}
-
         {/* URL Servidor */}
         <View style={styles.settingRowColumn}>
           <Text style={[styles.label, isDark ? styles.textDark : styles.textLight]}>
@@ -104,28 +75,6 @@ export default function Ajustes() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-           {/* ← NUEVO: Nombre de la Wi‑Fi objetivo */}
-        <View style={styles.settingRowColumn}>
-          <Text style={[styles.label, isDark ? styles.textDark : styles.textLight]}>
-            Nombre de la Wi‑Fi objetivo
-          </Text>
-          <TextInput
-            value={wifiNameInput}
-            onChangeText={setWifiNameInput}
-            onBlur={commitWifiName}
-            placeholder='Ej: "MiRedLocal" (vacío = "wifipost")'
-            placeholderTextColor="#9CA3AF"
-            style={[
-              styles.input,
-              isDark ? styles.inputDark : styles.inputLight,
-            ]}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <Text style={[styles.hint, isDark ? styles.textDark : styles.textLight]}>
-            Si dejas este campo vacío, se tomará <Text style={{ fontWeight: '700' }}>wifipost</Text> por defecto.
-          </Text>
-        </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

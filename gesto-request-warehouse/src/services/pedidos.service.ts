@@ -58,10 +58,7 @@ export const syncProducts = async (url: string, productos: any[]) => {
     return response.data;
   } catch (error) {
     console.log("syncProducts return",url,error)
-    router.push({ pathname: "/" })
-    AsyncStorage.removeItem("selectedLocal")
-    AsyncStorage.removeItem("selectedResponsable")
-    return []
+    return null
   }
 };
 export const activateRequest = async () => {
@@ -74,13 +71,13 @@ export const activateRequest = async () => {
   }
 };
 
-export const makeMovement = async () => {
+export const makeMovement = async (productos:any) => {
   try {
     const areaId = await AsyncStorage.getItem('selectedLocal');
-    const response = await axios.post(`${await API_URL()}/request/make-movement/${areaId}`);
+    const response = await axios.post(`${await API_URL()}/request/make-movement/${areaId}`,{productos});
     return response.data;
   } catch (error) {
-    return []
+    return null
   }
 };
 

@@ -181,7 +181,7 @@ export default function Basket({ title, url, help }: BasketProps) {
     return qty > stk;
   });
 
-  const ejecutarAccion = async (accion: string) => {
+  const ejecutarAccion = useCallback(async (accion: string) => {
     try {
       if (accion === "Enviar Pedido") {
         await activateRequest();
@@ -190,7 +190,7 @@ export default function Basket({ title, url, help }: BasketProps) {
       }
       if (accion === "Mover al área") {
         try {
-          await makeMovement();
+          await makeMovement(productos);
           Alert.alert("Movimiento realizado");
           await AsyncStorage.removeItem("requestId");
           router.push({ pathname: "/" });
@@ -201,7 +201,7 @@ export default function Basket({ title, url, help }: BasketProps) {
     } catch (e) {
       Alert.alert("Error", String(e));
     }
-  };
+  },[productos,url]);
 
   const handleAction = (accion: string) => {
     setConfirmState({ visible: true, accion });
