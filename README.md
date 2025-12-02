@@ -9,4 +9,4 @@
     -Marcar stock insuficiente
 ## 2.0.2
     -Colores del botón "Mover al área"
-        
+        bd
