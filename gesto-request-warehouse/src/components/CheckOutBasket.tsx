@@ -290,7 +290,13 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
                                 },
                             ]}
                             keyboardType="decimal-pad"
-                            value={item.quantity}
+                            inputMode="decimal"
+                            editable={true}
+                            value={item.quantity?.toString() || ""}
+                            placeholder="Cantidad"
+                            blurOnSubmit={false}
+                            placeholderTextColor="#888"
+                            returnKeyType="next"
                             onChangeText={(v) => actualizarCantidad(item.id, v)}
                         />
                     </View>
@@ -443,7 +449,7 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
 
                                     {/* Contenido */}
                                     <Text style={[styles.helpContent, { color: themeColors.text }]}>
-                                       {formatHelpText(item.content)}
+                                        {formatHelpText(item.content)}
                                     </Text>
 
                                     {/* Separador visual */}
@@ -613,12 +619,12 @@ const styles = StyleSheet.create({
     },
 });
 const formatHelpText = (text: string) => {
-  return text
-    // Salto antes de bullets •
-    .replace(/•/g, '\n• ')
-    // Salto antes de pasos numerados 1. 2. 3.
-    .replace(/(\d+\.)/g, '\n$1 ')
-    // Quita espacios dobles
-    .replace(/\n\s+/g, '\n')
-    .trim();
+    return text
+        // Salto antes de bullets •
+        .replace(/•/g, '\n• ')
+        // Salto antes de pasos numerados 1. 2. 3.
+        .replace(/(\d+\.)/g, '\n$1 ')
+        // Quita espacios dobles
+        .replace(/\n\s+/g, '\n')
+        .trim();
 };
