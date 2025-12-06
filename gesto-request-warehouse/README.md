@@ -10,6 +10,8 @@ npx create-expo-app -e with-tailwindcss
 
 ## Deploy
 
+
+
 Deploy on all platforms with Expo Application Services (EAS).
 
 - Deploy the website: `npx eas-cli deploy` — [Learn more](https://docs.expo.dev/eas/hosting/get-started/)
