@@ -179,15 +179,40 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
     // ===========================================================
     //  Acción principal — Mover al área
     // ===========================================================
-    const moverAlArea = async () => {
-        const response = await makeMovement(productos);
-        if (!response)
-            return Alert.alert("Error", "No se logró mover al área");
-        Alert.alert("Movimiento realizado");
-        await AsyncStorage.removeItem("requestId");
-        router.push("/");
+const moverAlArea = async () => {
+    Alert.alert(
+        "Confirmar movimiento",
+        "¿Desea mover los productos seleccionados al área?",
+        [
+            {
+                text: "Cancelar",
+                style: "cancel",
+            },
+            {
+                text: "Sí, mover",
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        const response = await makeMovement(productos);
 
-    };
+                        if (!response) {
+                            return Alert.alert(
+                                "Error",
+                                "No se logró mover al área. Verifique la conexión o los datos."
+                            );
+                        }
+
+                        Alert.alert("Éxito", "El movimiento fue realizado correctamente.");
+                        await AsyncStorage.removeItem("requestId");
+                        router.push("/");
+                    } catch (e) {
+                        Alert.alert("Error", String(e));
+                    }
+                },
+            },
+        ]
+    );
+};
 
     // ===========================================================
     //  Render del estado de sincronización
