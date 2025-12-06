@@ -157,7 +157,10 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
             .replace(/[\u0300-\u036f]/g, "")
             .toLowerCase()
             .trim();
-
+    const onSearchFocus = useCallback(() => {
+        if (!query) return;
+        setQuery("");
+    }, [query]);
     const filteredProductos = useMemo(() => {
         const q = normalize(query);
         if (!q) return productos;
@@ -275,6 +278,11 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
                             <Text style={[styles.nombre, { color: themeColors.text }]}>
                                 {item.name} ({unidades[item.unitOfMeasureId]})
                             </Text>
+                            {!!item.netContent && (
+                                <Text style={{ color: themeColors.text }}>
+                                    Contenido neto: {item.netContent} {unidades[item.netContentUnitOfMeasureId]}
+                                </Text>
+                            )}
                             <Text style={{ color: themeColors.text }}>Stock: {item.stock}</Text>
                         </Pressable>
 
@@ -364,10 +372,18 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
                                 <TextInput
                                     value={query}
                                     onChangeText={setQuery}
+                                    onFocus={onSearchFocus}
                                     placeholder="Buscar..."
                                     placeholderTextColor="#888"
+                                    blurOnSubmit={false}
                                     style={[styles.searchInput, { color: themeColors.inputText }]}
-                                />
+                                    returnKeyType="search"
+                                    autoCorrect={false} />
+                                {!!query && (
+                                    <TouchableOpacity onPress={() => setQuery("")}>
+                                        <MaterialIcons name="close" size={18} color="#888" />
+                                    </TouchableOpacity>
+                                )}
                             </View>
 
                             <TouchableOpacity
