@@ -1,5 +1,6 @@
 {
   "expo": {
+    "icon": "./assets/icon.png",
     "name": "Almacén",
     "userInterfaceStyle": "automatic",
     "slug": "gesto-request-warehouse",
@@ -21,6 +22,17 @@
     "owner": "fortunecode",
     "android": {
       "package": "com.fortunecode.gestorequestwarehouse"
-    }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "rgba(253,250,246,1)",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+          
+        }
+      ]
+    ]
   }
 }

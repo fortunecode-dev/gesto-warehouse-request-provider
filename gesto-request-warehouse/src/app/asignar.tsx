@@ -1,10 +1,9 @@
 import React from "react";
-import { CheckoutBasket } from "@/components/CheckOutBasket";
+import { AssignProducts } from "@/components/AssignProducts";
 
 export default function PedidoScreen() {
-  return <CheckoutBasket help={{
-    title: "Ayuda",
-    image: require("../../../assets/ayudaInicial.png"),
+  return <AssignProducts help={{
+    image: require("../../assets/ayudaInicial.png"),
     content: [
       {
         "subtitle": "Título de la pantalla",

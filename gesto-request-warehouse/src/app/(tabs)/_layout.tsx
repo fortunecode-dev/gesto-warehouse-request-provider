@@ -1,5 +1,5 @@
 import { Feather, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { Platform, useWindowDimensions } from 'react-native';
 import 'react-native-reanimated';
 import "../../global.css";
@@ -55,10 +55,10 @@ export default function TabLayout() {
           <Tabs.Screen
             name="index"
             options={{
-              title: 'Pedidos',
+              title: 'Áreas',
               tabBarIcon: ({ color, focused }) => (
                 <MaterialCommunityIcons
-                  name="clipboard-list-outline"
+                  name="warehouse"
                   size={focused ? 22 : 20}
                   color={color}
                 />
@@ -72,6 +72,51 @@ export default function TabLayout() {
               tabBarIcon: ({ color, focused }) => (
                 <Feather
                   name="package"
+                  size={focused ? 20 : 18}
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="history"
+            listeners={{
+              tabPress: () => {
+                router.replace("/history"); // limpia params
+              }
+            }}
+            options={{
+              title: 'Historial',
+              tabBarIcon: ({ color, focused }) => (
+                <Feather
+                  name="clock"
+                  size={focused ? 20 : 18}
+                  color={color}
+                />
+              ),
+
+            }}
+          />
+          <Tabs.Screen
+            name="recibir"
+            options={{
+              title: 'Recibir',
+              tabBarIcon: ({ color, focused }) => (
+                <Feather
+                  name="download"
+                  size={focused ? 20 : 18}
+                  color={color}
+                />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="asignar"
+            options={{
+              title: 'Asignar',
+              tabBarIcon: ({ color, focused }) => (
+                <Feather
+                  name="download"
                   size={focused ? 20 : 18}
                   color={color}
                 />
