@@ -67,7 +67,7 @@ function MovementCard({
   setActiveCard,
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
-  const OPEN_X = -85;
+  const OPEN_X = -50;
 
   const isOpen = activeCard?.id === movement.id;
 
@@ -133,6 +133,7 @@ function MovementCard({
                 flexGrow: 1,
                 backgroundColor: visual.soft,
                 borderColor: visual.color,
+                marginRight:-15
               },
             ]}
           >
@@ -143,16 +144,14 @@ function MovementCard({
           <View
             style={[
               styles.deletePanel,
-              { marginRight:-95,
+              { marginRight:-50,
                 marginLeft:10,
-                backgroundColor: visual.color,
-                borderColor: visual.color,
+                paddingLeft:10
               },
             ]}
           >
             <TouchableOpacity onPress={() => onDelete(movement)}>
-              <MaterialIcons name="delete" size={26} color="#fff" />
-              <Text style={styles.deleteText}>Eliminar</Text>
+              <MaterialIcons name="delete" size={26} color={visual.color} />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -437,12 +436,10 @@ const styles = StyleSheet.create({
   },
 
   deletePanel: {
-    width: 85,
+    width: 55,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    borderRadius: 100,
   },
 
   deleteText: {

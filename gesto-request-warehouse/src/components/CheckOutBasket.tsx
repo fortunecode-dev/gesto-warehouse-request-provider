@@ -325,8 +325,8 @@ const moverAlArea = async () => {
                             keyboardType="decimal-pad"
                             inputMode="decimal"
                             editable={true}
-                            value={item.quantity?.toString() || ""}
-                            placeholder="Cantidad"
+                            value={Number(item.quantity) === 0 ? "" : item.quantity?.toString()}
+                            placeholder="0"
                             blurOnSubmit={false}
                             placeholderTextColor="#888"
                             returnKeyType="next"
