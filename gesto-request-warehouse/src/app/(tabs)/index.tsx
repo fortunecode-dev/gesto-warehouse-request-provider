@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ActiveRequest {
   id: string;
@@ -30,6 +31,7 @@ export default function ActiveRequestsScreen() {
 
   const { theme } = useAppTheme();
   const dark = theme === "dark";
+  const backgroundColor = dark ? '#1F2937' : '#F9FAFB';
 
   const themeColors = {
     bg: dark ? "#0d1117" : "#f5f7fa",
@@ -70,7 +72,7 @@ export default function ActiveRequestsScreen() {
     router.push("/asignar");
   };
 
-  const goTo = (route: "/asignar" | "/(tabs)/checkout" | "/(tabs)/history", areaId: string) => {
+  const goTo = (route: "/asignar" | "/checkout" | "/(tabs)/history", areaId: string) => {
     router.push({ pathname: route, params: { areaId } });
   };
 
@@ -85,95 +87,97 @@ export default function ActiveRequestsScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.bg }]}>
-      <Text style={[styles.headerTitle, { color: themeColors.primary }]}>
-        Áreas
-      </Text>
+    <>
+      <View style={[styles.container, { backgroundColor: themeColors.bg }]}>
+        <Text style={[styles.headerTitle, { color: themeColors.primary }]}>
+          Áreas
+        </Text>
 
-      <FlatList
-        data={activeRequests}
-        keyExtractor={(item) => item.id}
-        refreshing={refreshing}
-        onRefresh={() => loadActiveRequests(true)}
-        contentContainerStyle={{ paddingBottom: 50 }}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: themeColors.secondaryText }]}>
-              No hay áreas registradas
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => {
-          const parts = item.areaName.split("-");
-          const sub = parts[0]?.trim();
-          const title = parts[1]?.trim() || parts[0];
-
-          return (
-            <View style={styles.card}>
-
-              <View style={styles.rowCompact}>
-
-                {/* HEADER IZQUIERDA */}
-                <View style={styles.headerColumn}>
-                  {parts[1] && (
-                    <Text style={[styles.areaSub, { color: themeColors.secondaryText }]}>
-                      {sub}
-                    </Text>
-                  )}
-                  <Text style={[styles.areaTitle, { color: themeColors.text }]}>
-                    {title}
-                  </Text>
-                </View>
-
-                {/* COLUMNA DE MOVIMIENTOS / ASIGNADOS */}
-                <View style={styles.middleColumn}>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.smallBtn,
-                      { backgroundColor: dark ? "#1e3a8a" : "#dbeafe" },
-                    ]}
-                    onPress={() => handleSelectMovements(item)}
-                  >
-                    <MaterialIcons name="sync" size={18} color={dark ? "#93c5fd" : "#1e40af"} />
-                    <Text style={[styles.smallBtnText, { color: dark ? "#bfdbfe" : "#1e3a8a" }]}>
-                      Movimientos
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Asignados – Verde */}
-                  <TouchableOpacity
-                    style={[
-                      styles.smallBtn,
-                      { backgroundColor: dark ? "#14532d" : "#dcfce7" },
-                    ]}
-                    onPress={() => handleSelectAssigns(item)}
-                  >
-                    <MaterialIcons name="inventory" size={18} color={dark ? "#86efac" : "#166534"} />
-                    <Text style={[styles.smallBtnText, { color: dark ? "#bbf7d0" : "#166534" }]}>
-                      Asignados
-                    </Text>
-                  </TouchableOpacity>
-
-                </View>
-
-                {/* BOTÓN GRANDE DAR SALIDA */}
-                <TouchableOpacity
-                  style={[styles.bigBtn, { backgroundColor: themeColors.primary }]}
-                  onPress={() => handleSelect(item)}
-                >
-                  <MaterialIcons name="exit-to-app" size={26} color="#fff" />
-                  <Text style={styles.bigBtnText}>Dar salida</Text>
-                </TouchableOpacity>
-
-              </View>
+        <FlatList
+          data={activeRequests}
+          keyExtractor={(item) => item.id}
+          refreshing={refreshing}
+          onRefresh={() => loadActiveRequests(true)}
+          contentContainerStyle={{ paddingBottom: 50 }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: themeColors.secondaryText }]}>
+                No hay áreas registradas
+              </Text>
             </View>
+          }
+          renderItem={({ item }) => {
+            const parts = item.areaName.split("-");
+            const sub = parts[0]?.trim();
+            const title = parts[1]?.trim() || parts[0];
+
+            return (
+              <View style={styles.card}>
+
+                <View style={styles.rowCompact}>
+
+                  {/* HEADER IZQUIERDA */}
+                  <View style={styles.headerColumn}>
+                    {parts[1] && (
+                      <Text style={[styles.areaSub, { color: themeColors.secondaryText }]}>
+                        {sub}
+                      </Text>
+                    )}
+                    <Text style={[styles.areaTitle, { color: themeColors.text }]}>
+                      {title}
+                    </Text>
+                  </View>
+
+                  {/* COLUMNA DE MOVIMIENTOS / ASIGNADOS */}
+                  <View style={styles.middleColumn}>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.smallBtn,
+                        { backgroundColor: dark ? "#1e3a8a" : "#dbeafe" },
+                      ]}
+                      onPress={() => handleSelectMovements(item)}
+                    >
+                      <MaterialIcons name="sync" size={18} color={dark ? "#93c5fd" : "#1e40af"} />
+                      <Text style={[styles.smallBtnText, { color: dark ? "#bfdbfe" : "#1e3a8a" }]}>
+                        Movimientos
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Asignados – Verde */}
+                    <TouchableOpacity
+                      style={[
+                        styles.smallBtn,
+                        { backgroundColor: dark ? "#14532d" : "#dcfce7" },
+                      ]}
+                      onPress={() => handleSelectAssigns(item)}
+                    >
+                      <MaterialIcons name="inventory" size={18} color={dark ? "#86efac" : "#166534"} />
+                      <Text style={[styles.smallBtnText, { color: dark ? "#bbf7d0" : "#166534" }]}>
+                        Asignados
+                      </Text>
+                    </TouchableOpacity>
+
+                  </View>
+
+                  {/* BOTÓN GRANDE DAR SALIDA */}
+                  <TouchableOpacity
+                    style={[styles.bigBtn, { backgroundColor: themeColors.primary }]}
+                    onPress={() => handleSelect(item)}
+                  >
+                    <MaterialIcons name="exit-to-app" size={26} color="#fff" />
+                    <Text style={styles.bigBtnText}>Dar salida</Text>
+                  </TouchableOpacity>
+
+                </View>
+              </View>
 
 
-          );
-        }}
-      />
-    </View>
+            );
+          }}
+        />
+      </View>
+    </>
   );
 }
 

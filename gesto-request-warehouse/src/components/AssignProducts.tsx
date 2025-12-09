@@ -30,6 +30,7 @@ import {
   actualizarProductosDelArea,
 } from "@/services/pedidos.service";
 import { API_URL } from "@/config";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // ===========================================================
 //  COMPONENTE PRINCIPAL — Asignar Productos al Área
@@ -51,6 +52,7 @@ export function AssignProducts({
 
   const { theme } = useAppTheme();
   const isDark = theme === "dark";
+  const backgroundColor = isDark ? '#1F2937' : '#F9FAFB';
   const [serverOnline, setServerOnline] = useState<boolean>(true);
   const [alertedOffline, setAlertedOffline] = useState(false);
   const [trying, setTrying] = useState(false);
@@ -202,7 +204,7 @@ export function AssignProducts({
   // ===========================================================
   //  Acción principal — Asignar productos al área
   // ===========================================================
-  
+
 
   const handleAsignar = useCallback(async () => {
     try {
@@ -215,10 +217,10 @@ export function AssignProducts({
     } finally {
       setSubmitting(false);
     }
-  },[selectedIds]);
+  }, [selectedIds]);
 
-const handleAsignarConfirm = useCallback(() => {
-  handleAsignar()
+  const handleAsignarConfirm = useCallback(() => {
+    handleAsignar()
     // if (!selectedIds.length) {
     //   Alert.alert("Sin productos", "Seleccione al menos un producto.");
     //   return;
@@ -236,7 +238,7 @@ const handleAsignarConfirm = useCallback(() => {
     //     },
     //   ]
     // );
-  },[handleAsignar]);
+  }, [handleAsignar]);
   // ===========================================================
   //  Render item
   // ===========================================================
@@ -294,210 +296,210 @@ const handleAsignarConfirm = useCallback(() => {
     },
     [selectedIds, themeColors, isDark, toggleSelection]
   );
-if (loading) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: themeColors.background,
-      }}
-    >
-      <ActivityIndicator size="large" color={themeColors.primary} />
-      <Text style={{ marginTop: 12, color: themeColors.text }}>
-        Cargando productos...
-      </Text>
-    </View>
-  );
-}
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: themeColors.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={themeColors.primary} />
+        <Text style={{ marginTop: 12, color: themeColors.text }}>
+          Cargando productos...
+        </Text>
+      </View>
+    );
+  }
 
   // ===========================================================
   //  UI
   // ===========================================================
   return (
-    <>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: themeColors.background }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <View style={{ flex: 1 }}>
-          {/* HEADER */}
-          <View style={[styles.header, { backgroundColor: themeColors.card }]}>
-            <View style={styles.headerTopRow}>
-              <Text style={[styles.titleSmall, { color: themeColors.text }]}>
-                {title} - {areaName}
-              </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor }}> <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: themeColors.background }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <View style={{ flex: 1 }}>
+        {/* HEADER */}
+        <View style={[styles.header, { backgroundColor: themeColors.card }]}>
+          <View style={styles.headerTopRow}>
+            <Text style={[styles.titleSmall, { color: themeColors.text }]}>
+              {title} - {areaName}
+            </Text>
 
-              <View style={styles.topRight}>
-                {renderServerStatus()}
-
-                <TouchableOpacity
-                  onPress={() => setHelpVisible(true)}
-                  style={[
-                    styles.actionButton,
-                    { backgroundColor: themeColors.primary },
-                  ]}
-                >
-                  <Text style={styles.actionText}>Ayuda</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Buscador */}
-            <View style={styles.headerBottomRow}>
-              <View
-                style={[
-                  styles.searchBox,
-                  {
-                    backgroundColor: themeColors.inputBg,
-                    borderColor: themeColors.border,
-                  },
-                ]}
-              >
-                <MaterialIcons name="search" size={18} color="#888" />
-                <TextInput
-                  value={query}
-                  onChangeText={setQuery}
-                  onFocus={onSearchFocus}
-                  placeholder="Buscar..."
-                  placeholderTextColor="#888"
-                  blurOnSubmit={false}
-                  style={[
-                    styles.searchInput,
-                    { color: themeColors.inputText },
-                  ]}
-                  returnKeyType="search"
-                  autoCorrect={false}
-                />
-                {!!query && (
-                  <TouchableOpacity onPress={() => setQuery("")}>
-                    <MaterialIcons name="close" size={18} color="#888" />
-                  </TouchableOpacity>
-                )}
-              </View>
+            <View style={styles.topRight}>
+              {renderServerStatus()}
 
               <TouchableOpacity
-                onPress={load}
+                onPress={() => setHelpVisible(true)}
                 style={[
                   styles.actionButton,
                   { backgroundColor: themeColors.primary },
                 ]}
               >
-                <Text style={styles.actionText}>Actualizar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                disabled={!serverOnline || submitting}
-                onPress={handleAsignarConfirm}
-                style={[
-                  styles.actionButton,
-                  {
-                    backgroundColor:
-                      !serverOnline || submitting
-                        ? "#cccccc55"
-                        : themeColors.primary,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                  },
-                ]}
-              >
-                {submitting && (
-                  <ActivityIndicator size={16} color="#ffffff" />
-                )}
-                <Text style={styles.actionText}>Asignar</Text>
+                <Text style={styles.actionText}>Ayuda</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* LISTA */}
-          <FlatList
-            ref={listRef}
-            data={filteredProductos}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderItem}
-            contentContainerStyle={{ padding: 10 }}
-            keyboardShouldPersistTaps="always"
-          />
-        </View>
-      </KeyboardAvoidingView>
-
-      {/* MODAL AYUDA */}
-      <Modal visible={helpVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View
-            style={[styles.helpCard, { backgroundColor: themeColors.card }]}
-          >
-            <View style={styles.helpHeader}>
-              <MaterialIcons
-                name="help"
-                size={28}
-                color={themeColors.primary}
+          {/* Buscador */}
+          <View style={styles.headerBottomRow}>
+            <View
+              style={[
+                styles.searchBox,
+                {
+                  backgroundColor: themeColors.inputBg,
+                  borderColor: themeColors.border,
+                },
+              ]}
+            >
+              <MaterialIcons name="search" size={18} color="#888" />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                onFocus={onSearchFocus}
+                placeholder="Buscar..."
+                placeholderTextColor="#888"
+                blurOnSubmit={false}
+                style={[
+                  styles.searchInput,
+                  { color: themeColors.inputText },
+                ]}
+                returnKeyType="search"
+                autoCorrect={false}
               />
-              <Text
-                style={[styles.helpTitle, { color: themeColors.text }]}
-              >
-                {help.title}
-              </Text>
+              {!!query && (
+                <TouchableOpacity onPress={() => setQuery("")}>
+                  <MaterialIcons name="close" size={18} color="#888" />
+                </TouchableOpacity>
+              )}
             </View>
 
-            <FlatList
-              data={help.content}
-              keyExtractor={(_, i) => `help-${i}`}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
-              renderItem={({ item }) => (
-                <View style={styles.helpBlock}>
-                  <View style={styles.helpSubtitleRow}>
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={20}
-                      color={themeColors.primary}
-                    />
-                    <Text
-                      style={[
-                        styles.helpSubtitle,
-                        { color: themeColors.text },
-                      ]}
-                    >
-                      {item.subtitle}
-                    </Text>
-                  </View>
-
-                  <Text
-                    style={[
-                      styles.helpContent,
-                      { color: themeColors.text },
-                    ]}
-                  >
-                    {formatHelpText(item.content)}
-                  </Text>
-
-                  <View
-                    style={[
-                      styles.helpDivider,
-                      { borderColor: themeColors.border },
-                    ]}
-                  />
-                </View>
-              )}
-            />
-
             <TouchableOpacity
-              onPress={() => setHelpVisible(false)}
+              onPress={load}
               style={[
-                styles.closeButton,
+                styles.actionButton,
                 { backgroundColor: themeColors.primary },
               ]}
             >
-              <MaterialIcons name="close" size={22} color="#fff" />
-              <Text style={styles.closeButtonText}>Cerrar</Text>
+              <Text style={styles.actionText}>Actualizar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              disabled={!serverOnline || submitting}
+              onPress={handleAsignarConfirm}
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor:
+                    !serverOnline || submitting
+                      ? "#cccccc55"
+                      : themeColors.primary,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                },
+              ]}
+            >
+              {submitting && (
+                <ActivityIndicator size={16} color="#ffffff" />
+              )}
+              <Text style={styles.actionText}>Asignar</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    </>
+
+        {/* LISTA */}
+        <FlatList
+          ref={listRef}
+          data={filteredProductos}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderItem}
+          contentContainerStyle={{ padding: 10 }}
+          keyboardShouldPersistTaps="always"
+        />
+      </View>
+    </KeyboardAvoidingView>
+
+      {/* MODAL AYUDA */ }
+  <Modal visible={helpVisible} transparent animationType="fade">
+    <View style={styles.modalOverlay}>
+      <View
+        style={[styles.helpCard, { backgroundColor: themeColors.card }]}
+      >
+        <View style={styles.helpHeader}>
+          <MaterialIcons
+            name="help"
+            size={28}
+            color={themeColors.primary}
+          />
+          <Text
+            style={[styles.helpTitle, { color: themeColors.text }]}
+          >
+            {help.title}
+          </Text>
+        </View>
+
+        <FlatList
+          data={help.content}
+          keyExtractor={(_, i) => `help-${i}`}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <View style={styles.helpBlock}>
+              <View style={styles.helpSubtitleRow}>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={20}
+                  color={themeColors.primary}
+                />
+                <Text
+                  style={[
+                    styles.helpSubtitle,
+                    { color: themeColors.text },
+                  ]}
+                >
+                  {item.subtitle}
+                </Text>
+              </View>
+
+              <Text
+                style={[
+                  styles.helpContent,
+                  { color: themeColors.text },
+                ]}
+              >
+                {formatHelpText(item.content)}
+              </Text>
+
+              <View
+                style={[
+                  styles.helpDivider,
+                  { borderColor: themeColors.border },
+                ]}
+              />
+            </View>
+          )}
+        />
+
+        <TouchableOpacity
+          onPress={() => setHelpVisible(false)}
+          style={[
+            styles.closeButton,
+            { backgroundColor: themeColors.primary },
+          ]}
+        >
+          <MaterialIcons name="close" size={22} color="#fff" />
+          <Text style={styles.closeButtonText}>Cerrar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+    </SafeAreaView>
+     
   );
 }
 

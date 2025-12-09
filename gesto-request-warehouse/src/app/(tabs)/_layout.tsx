@@ -66,19 +66,6 @@ export default function TabLayout() {
             }}
           />
           <Tabs.Screen
-            name="checkout"
-            options={{
-              title: 'Almacén',
-              tabBarIcon: ({ color, focused }) => (
-                <Feather
-                  name="package"
-                  size={focused ? 20 : 18}
-                  color={color}
-                />
-              ),
-            }}
-          />
-          <Tabs.Screen
             name="history"
             listeners={{
               tabPress: () => {
@@ -101,19 +88,6 @@ export default function TabLayout() {
             name="recibir"
             options={{
               title: 'Recibir',
-              tabBarIcon: ({ color, focused }) => (
-                <Feather
-                  name="download"
-                  size={focused ? 20 : 18}
-                  color={color}
-                />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="asignar"
-            options={{
-              title: 'Asignar',
               tabBarIcon: ({ color, focused }) => (
                 <Feather
                   name="download"

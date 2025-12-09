@@ -11,6 +11,7 @@ import {
 import { useFocusEffect, router } from "expo-router";
 import { useAppTheme } from "@/providers/ThemeProvider";
 import { getPendingTransfer, receiveTransfer } from "@/services/pedidos.service";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const standar: Record<string, string> = {
     mass: "g",
@@ -30,6 +31,7 @@ export default function PendingTransferView() {
 
     const { theme } = useAppTheme();
     const isDark = theme === "dark";
+    const backgroundColor = isDark ? '#1F2937' : '#F9FAFB';
 
     const themeColors = {
         background: isDark ? "#111827" : "#f2f2f2",

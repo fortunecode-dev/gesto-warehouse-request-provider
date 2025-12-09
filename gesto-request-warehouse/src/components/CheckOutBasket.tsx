@@ -29,6 +29,7 @@ import {
     makeMovement,
 } from "@/services/pedidos.service";
 import { API_URL } from "@/config";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const unidades = { mass: "g", units: "u", volume: "mL", distance: "cm" };
 const regexCantidad = /^\d*[.,]?\d{0,2}$/;
@@ -51,6 +52,7 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
 
     const { theme } = useAppTheme();
     const isDark = theme === "dark";
+    const backgroundColor = isDark ? '#1F2937' : '#F9FAFB';
     const [serverOnline, setServerOnline] = useState<boolean>(true);
     const [alertedOffline, setAlertedOffline] = useState(false);
     const [trying, setTrying] = useState(false);
@@ -179,40 +181,40 @@ export function CheckoutBasket({ title = "Pedido", help }: { title?: string; hel
     // ===========================================================
     //  Acción principal — Mover al área
     // ===========================================================
-const moverAlArea = async () => {
-    Alert.alert(
-        "Confirmar movimiento",
-        "¿Desea mover los productos seleccionados al área?",
-        [
-            {
-                text: "Cancelar",
-                style: "cancel",
-            },
-            {
-                text: "Sí, mover",
-                style: "destructive",
-                onPress: async () => {
-                    try {
-                        const response = await makeMovement(productos);
-
-                        if (!response) {
-                            return Alert.alert(
-                                "Error",
-                                "No se logró mover al área. Verifique la conexión o los datos."
-                            );
-                        }
-
-                        Alert.alert("Éxito", "El movimiento fue realizado correctamente.");
-                        await AsyncStorage.removeItem("requestId");
-                        router.push("/");
-                    } catch (e) {
-                        Alert.alert("Error", String(e));
-                    }
+    const moverAlArea = async () => {
+        Alert.alert(
+            "Confirmar movimiento",
+            "¿Desea mover los productos seleccionados al área?",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel",
                 },
-            },
-        ]
-    );
-};
+                {
+                    text: "Sí, mover",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const response = await makeMovement(productos);
+
+                            if (!response) {
+                                return Alert.alert(
+                                    "Error",
+                                    "No se logró mover al área. Verifique la conexión o los datos."
+                                );
+                            }
+
+                            Alert.alert("Éxito", "El movimiento fue realizado correctamente.");
+                            await AsyncStorage.removeItem("requestId");
+                            router.push("/");
+                        } catch (e) {
+                            Alert.alert("Error", String(e));
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     // ===========================================================
     //  Render del estado de sincronización
@@ -344,8 +346,7 @@ const moverAlArea = async () => {
     //  UI
     // ===========================================================
     return (
-        <>
-            {/* ======== CONTENEDOR PRINCIPAL ======== */}
+        <SafeAreaView style={{ flex: 1, backgroundColor }}>
             <KeyboardAvoidingView
                 style={{ flex: 1, backgroundColor: themeColors.background }}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -510,8 +511,8 @@ const moverAlArea = async () => {
                     </View>
                 </View>
             </Modal>
+        </SafeAreaView>
 
-        </>
     );
 }
 

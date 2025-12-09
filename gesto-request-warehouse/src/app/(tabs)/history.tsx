@@ -24,6 +24,7 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import { fetchMovements, undoMovement } from "@/services/pedidos.service";
 import { useAppTheme } from "@/providers/ThemeProvider";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 /* ===========================================================
    VISUAL LOGIC
@@ -133,7 +134,7 @@ function MovementCard({
                 flexGrow: 1,
                 backgroundColor: visual.soft,
                 borderColor: visual.color,
-                marginRight:-15
+                marginRight: 0
               },
             ]}
           >
@@ -144,10 +145,9 @@ function MovementCard({
           <View
             style={[
               styles.deletePanel,
-              { marginRight:-50,
-                marginLeft:10,
-                paddingLeft:10
-              },
+              // { marginRight:-30,
+              //   marginLeft:10,
+              // },
             ]}
           >
             <TouchableOpacity onPress={() => onDelete(movement)}>
@@ -173,6 +173,8 @@ export default function MovementsView() {
   const { theme } = useAppTheme();
   const isDark = theme === "dark";
 
+  // Colores dinámicos por tema
+  const backgroundColor = isDark ? '#1F2937' : '#F9FAFB';
   const COLORS = {
     background: isDark ? "#111827" : "#f5f7fb",
     text: isDark ? "#f9fafb" : "#1e293b",
@@ -307,40 +309,40 @@ Fecha: ${fecha}
                         </Text>
                         <Text>
                           <Text
-                          style={[styles.year, { color: COLORS.textSecondary }]}
-                        >
-                          De:  <Text style={{ color: COLORS.text }}>
-                        {m.originArea} -
-                        <Text
-                          style={[
-                            styles.localName,
-                            { color: COLORS.textSecondary },
-                          ]}
-                        >
-                          {m.originLocal}
+                            style={[styles.year, { color: COLORS.textSecondary }]}
+                          >
+                            De:  <Text style={{ color: COLORS.text }}>
+                              {m.originArea} -
+                              <Text
+                                style={[
+                                  styles.localName,
+                                  { color: COLORS.textSecondary },
+                                ]}
+                              >
+                                {m.originLocal}
+                              </Text>
+
+                            </Text>
+                          </Text>
+                        </Text>
+                        <Text>
+                          <Text
+                            style={[styles.year, { color: COLORS.textSecondary }]}
+                          >
+                            A: <Text style={{ color: COLORS.text }}>
+                              {m.destinationArea} -
+                              <Text
+                                style={[
+                                  styles.localName,
+                                  { color: COLORS.textSecondary },
+                                ]}
+                              >
+                                {m.destinationLocal}
+                              </Text>
+                            </Text>
+                          </Text>
                         </Text>
 
-                      </Text>
-                        </Text>
-                        </Text>
-                       <Text>
-                        <Text
-                          style={[styles.year, { color: COLORS.textSecondary }]}
-                        >
-                          A: <Text style={{ color: COLORS.text }}>
-                        {m.destinationArea} -
-                        <Text
-                          style={[
-                            styles.localName,
-                            { color: COLORS.textSecondary },
-                          ]}
-                        >
-                          {m.destinationLocal}
-                        </Text>
-                      </Text>
-                       </Text>
-                       </Text>
-                      
                       </View>
 
                       <View style={styles.colQty}>
