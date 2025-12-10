@@ -1,6 +1,6 @@
 {
   "expo": {
-    "icon": "./assets/icon.png",
+    "icon": "./assets/adaptive-icon.png",
     "name": "Almacén",
     "userInterfaceStyle": "automatic",
     "slug": "gesto-request-warehouse",
@@ -27,8 +27,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/splash-icon-dark.png",
+          "imageWidth": 290,
           "backgroundColor": "#fdfaf6"
         }
       ]
